@@ -8,6 +8,11 @@ logging.basicConfig(filename='data/flights_pipe_log.log', level=logging.INFO)
 logger = logging.getLogger()
 
 def read_metadado(meta_path):
+    '''
+    Função para leitura dos metadados
+    INPUT: Endereço do arquivo de metadados
+    OUTPUT: Dicionário de colunas de metadados 
+    '''    
     meta = pd.read_excel(meta_path)
     metadados = {
         "tabela": meta["tabela"].unique(),
@@ -16,6 +21,7 @@ def read_metadado(meta_path):
         "tipos_originais" : dict(zip(list(meta["cols_originais"]),list(meta["tipo_original"]))),
         "tipos_formatted" : dict(zip(list(meta["cols_renamed"]),list(meta["tipo_formatted"]))),
         "cols_chaves" : list(meta.loc[meta["key"] == 1]["cols_originais"]),
+        "cols_chaves_renamed" : list(meta.loc[meta["key"] == 1]["cols_renamed"]),
         "null_tolerance" : dict(zip(list(meta["cols_renamed"]), list(meta["raw_null_tolerance"]))),
         "std_str" : list(meta.loc[meta["std_str"] == 1]["cols_renamed"]),
         "corrige_hr" : list(meta.loc[meta["corrige_hr"] == 1]["cols_renamed"])
@@ -94,14 +100,20 @@ def null_check(df, null_tolerance):
              logger.info(
                 f"{col} possui nulos dentro do esperado; {datetime.datetime.now()}")
             
-def keys_check(df, cols_chaves):
+def keys_check(df, cols_chaves_renamed):
     '''
-    Função ???????????????????????????
-    INPUT: ???????????????????????????
-    OUTPUT: ???????????????????????????
+    Função de validação das colunas chaves renomeadas
+    INPUT: Pandas DataFrame, lista de colunas que são chaves renomeadas
+    OUTPUT: --
     '''
-    #colocar log info
-    pass
+    for col in cols_chaves_renamed:
+        if  len(df[col]) == len(df):
+            logger.info(
+                f"{col} possui a quantidade de registros do total; {datetime.datetime.now()}")
+        else:
+             logger.error(
+                f"{col} possui quantidade de registros diferente do total; {datetime.datetime.now()}")
+    # pass
 
 # Funções auxiliares -------------------------------------------
 
@@ -117,3 +129,23 @@ def corrige_hora(hr_str, dct_hora = {1:"000?",2:"00?",3:"0?",4:"?"}):
     else:
         hora = dct_hora[len(hr_str)].replace("?", hr_str)
         return f"{hora[:2]}:{hora[2:]}"
+    
+def classifica_hora(hra):
+    '''
+    Função para classificar hora
+    INPUT: Hora
+    OUTPUT: Período
+    '''
+    if 0 <= hra < 6: return "MADRUGADA"
+    elif 6 <= hra < 12: return "MANHA"
+    elif 12 <= hra < 18: return "TARDE"
+    else: return "NOITE"    
+
+def flg_status(atraso):
+    '''
+    Função para classificar status
+    INPUT: Hora
+    OUTPUT: Status
+    '''    
+    if atraso > 0.5 : return "ATRASO"
+    else: return "ONTIME"    
